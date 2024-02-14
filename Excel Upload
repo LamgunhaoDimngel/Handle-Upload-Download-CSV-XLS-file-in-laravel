@@ -1,0 +1,39 @@
+# This is a Laravel Controller function to handle the excel upload
+public function package_excel_upload(Request $request){
+    // Retrieve the uploaded file
+    $uploadedFile = $request->file('excel');
+    $spreadsheet = IOFactory::load($uploadedFile->getPathname());
+
+    // Get the first worksheet
+    $worksheet = $spreadsheet->getActiveSheet();
+
+    // Extract field names from the first row
+    $fields = [];
+    $firstRow = $worksheet->getRowIterator()->current();
+    foreach ($firstRow->getCellIterator() as $cell) {
+        $fields[] = $cell->getValue();
+    }
+
+    // Extract data from the worksheet (excluding the first row)
+    $data = [];
+    $rows = $worksheet->getRowIterator();
+    foreach ($rows as $row) {
+        $rowData = [];
+        foreach ($row->getCellIterator() as $cell) {
+            $rowData[] = $cell->getValue();
+        }
+        $data[] = $rowData;
+    }
+    
+    foreach ($data as $i => $rowData) {
+        if($i != 0){
+            if (isset($rowData['id'])) {
+                $dataToInsert = array_combine($fields, $rowData);
+                // Update or create a record based on the 'id' field
+                // edit the Model based on the database table
+                Package::updateOrCreate(['id' => $rowData['id']], $dataToInsert);
+            }
+        }
+    }
+     return Redirect::to('/admin/index')->with('success', 'Package added Successfully');
+}
