@@ -1,0 +1,63 @@
+# This is a jquery funtion to handle the excel download button
+$('#downloadExcel').on('click', function() {
+    // Make an AJAX request to the PHP script
+    $.ajax({
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        url: "{{ route('excel_download') }}",
+        type: 'GET',
+        success: function(response) {
+            var blob = new Blob([response], { type: 'text/csv' });
+            var downloadLink = document.createElement('a');
+            downloadLink.href = 'data:application/vnd.ms-excel;charset=utf-8,' + encodeURIComponent(response);
+            var randomNumber = Math.floor(Math.random() * 1000);
+            var formattedNumber = randomNumber.toString().padStart(3, '0');
+            var today = $.datepicker.formatDate('yymmdd', new Date());
+            var name = today+formattedNumber;
+            downloadLink.download = 'Holiday Packages '+name+'.xls';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        },
+        error: function(error) {
+            console.error('Error downloading data:', error);
+        }
+    });
+});
+
+# this is the Laravel controller function to handle the download 
+public function excel_download(){
+      // Edit the model as per database table model
+      $data = Package::all();
+
+      // Check if there is data
+      if ($data->isEmpty()) {
+          die("No data to export.");
+      }
+      
+      $name = date('Ymd') . '_' . rand(000, 999); // Added underscore to the file name
+      $excelFileName = $name . '.xls'; // Changed file extension to .xls for Excel
+      
+      // Set the response headers for Excel
+      header('Content-Type: application/vnd.ms-excel');
+      header('Content-Disposition: attachment; filename="' . $excelFileName . '"');
+      
+      // Open the output stream
+      $output = fopen('php://output', 'w');
+      
+      // Output Excel header (optional, depends on your data structure)
+      fputcsv($output, array_keys($data[0]->toArray()));
+      
+      // Output data
+      foreach ($data as $row) {
+          // Modify as per your data structure
+          fputcsv($output, $row->toArray());
+      }
+      
+      // Close the output stream
+      fclose($output);
+      
+      exit(); // Added to stop further execution
+
+  }
