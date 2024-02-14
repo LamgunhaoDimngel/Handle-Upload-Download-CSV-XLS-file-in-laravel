@@ -14,26 +14,33 @@ public function package_excel_upload(Request $request){
         $fields[] = $cell->getValue();
     }
 
-    // Extract data from the worksheet (excluding the first row)
     $data = [];
     $rows = $worksheet->getRowIterator();
+   
     foreach ($rows as $row) {
         $rowData = [];
         foreach ($row->getCellIterator() as $cell) {
+
             $rowData[] = $cell->getValue();
         }
         $data[] = $rowData;
+        
     }
-    
+  
     foreach ($data as $i => $rowData) {
-        if($i != 0){
-            if (isset($rowData['id'])) {
-                $dataToInsert = array_combine($fields, $rowData);
+        if ($i == 0) {
+            continue; // Skip the first row
+        }
+        
+        $dataToInsert = array_combine($fields, $rowData);
+           
+        if (isset($dataToInsert['id'])) {
+           if (isset($dataToInsert['id'])) {
                 // Update or create a record based on the 'id' field
-                // edit the Model based on the database table
-                Package::updateOrCreate(['id' => $rowData['id']], $dataToInsert);
+                Package::updateOrCreate(['id' => $dataToInsert['id']], $dataToInsert);
             }
         }
+        
     }
-     return Redirect::to('/admin/index')->with('success', 'Package added Successfully');
+     return Redirect::to('/admin/holidaypackage')->with('success', 'Package added Successfully');
 }
