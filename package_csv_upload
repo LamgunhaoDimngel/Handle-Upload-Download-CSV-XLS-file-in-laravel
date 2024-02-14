@@ -1,0 +1,56 @@
+public function package_csv_upload(Request $request){
+  
+        $request->validate([
+            'csv' => 'required|mimes:csv|max:10240',
+        ]);
+    
+        $filePath = $request->file('csv')->path();
+
+        $file = fopen($filePath, 'r');
+    
+        // Assuming the first row in the CSV file represents the database fields
+        $fields = fgetcsv($file, 1000, ',');
+    
+        $data = [];
+        while (($row = fgetcsv($file, 1000, ',')) !== false) {
+            // Check if the number of fields and values match
+            if (count($fields) == count($row)) {
+                // Combine the field names with the corresponding data values
+                $combinedRow = array_combine($fields, $row);
+    
+                // Loop through the combined row to check for empty values and assign null
+                foreach ($combinedRow as $key => $value) {
+                    if ($value === '') {
+                        $combinedRow[$key] = null;
+                    }
+                }
+    
+                $data[] = $combinedRow;
+            } else {
+                // Handle the case where the number of fields and values don't match
+                // You might want to log an error or handle it in another way
+                // For now, we'll skip this row
+                continue;
+            }
+        }
+    
+        fclose($file);
+    
+        // Now $data is an array of associative arrays where keys are field names
+    
+        // Loop through $data and store each row in the database only if the id does not exist
+
+        foreach ($data as $row) {
+            // Check if the 'id' key exists in the row
+            if (isset($row['id'])) {
+                $existingRecord = Package::find($row['id']);
+    
+                // If the record with the given id does not exist, create a new one
+                if (!$existingRecord) {
+                   
+                    Package::create($row);
+                }
+            }
+        }
+        return Redirect::to('/admin/package')->with('success', 'Package added Successfully');
+    }
