@@ -1,0 +1,65 @@
+# Ajax request to handle teh download button
+$('#downloadBtn').on('click', function() {
+    // Make an AJAX request to the PHP script
+    $.ajax({
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        url: "{{ route('csv_download') }}",
+        type: 'GET',
+        success: function(data) {
+            console.log('downloaded');
+            // If successful, the CSV file will be downloaded
+            var blob = new Blob([data], { type: 'text/csv' });
+
+            // Create a link element and trigger the download
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            var randomNumber = Math.floor(Math.random() * 1000);
+            var formattedNumber = randomNumber.toString().padStart(3, '0');
+            var today = $.datepicker.formatDate('yymmdd', new Date());
+            var name = today+formattedNumber;
+            link.download = 'Holiday Packages '+name+'.csv';
+            document.body.appendChild(link);
+            link.click();
+
+            // Remove the link element from the document
+            document.body.removeChild(link);
+        },
+        error: function(error) {
+            console.error('Error downloading data:', error);
+        }
+    });
+});
+
+# This is a Controller function
+public function csv_download(Request $request){
+	   
+      $data = Package::all();
+
+      // Check if there is data
+      if ($data->isEmpty()) {
+          die("No data to export.");
+      }
+      $name = date('Ymd').rand(000,999);
+      $csvFileName = $name.'.csv';
+      
+      // Set the response headers
+      header('Content-Type: text/csv');
+      header('Content-Disposition: attachment; filename="' . $csvFileName . '"');
+      
+      // Open the output stream
+      $output = fopen('php://output', 'w');
+      
+      // Output CSV header
+      fputcsv($output, array_keys($data[0]->toArray()));
+      
+      // Output data
+      foreach ($data as $row) {
+          fputcsv($output, $row->toArray());
+      }
+      
+      // Close the output stream
+      fclose($output);
+
+	}
